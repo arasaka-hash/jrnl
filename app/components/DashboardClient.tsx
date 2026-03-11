@@ -77,7 +77,13 @@ export function DashboardClient({ initialEntries }: DashboardClientProps) {
   const statsMap = computeStatsMap(entries);
 
   const refresh = useCallback(async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'DashboardClient.tsx:refresh:start',message:'refresh called',data:{},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+    // #endregion
     const data = await fetchLifeUpdates();
+    // #region agent log
+    fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'DashboardClient.tsx:refresh:done',message:'fetchLifeUpdates done',data:{count:data.length,lastEntry:data[data.length-1]?.headline,lastScores:data[data.length-1]?.scores?.map(s=>({p:s.pointId,sc:s.score}))},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+    // #endregion
     setEntries(data);
   }, []);
 

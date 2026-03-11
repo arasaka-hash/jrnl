@@ -89,6 +89,9 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
     setError(null);
     try {
       const res = await submitLifeUpdate(input);
+      // #region agent log
+      fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'InputPanel.tsx:handleSubmit',message:'submitLifeUpdate result',data:{ok:res.ok,error:res.error,input},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+      // #endregion
       if (res.ok) {
         setInput("");
         onSubmitted();

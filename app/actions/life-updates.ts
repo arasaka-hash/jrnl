@@ -21,6 +21,9 @@ async function parseUpdateWithAI(rawInput: string): Promise<{
 }> {
   const apiKey =
     process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
+  // #region agent log
+  fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'life-updates.ts:parseUpdateWithAI:entry',message:'parseUpdateWithAI called',data:{rawInput,apiKeyPresent:!!apiKey},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+  // #endregion
   if (!apiKey) {
     return {
       headline: rawInput.slice(0, 60) || "Untitled",
@@ -113,12 +116,19 @@ Every pointId must exactly match one of: ${TRACKING_POINTS_STR}`;
       };
     });
 
+    // #region agent log
+    fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'life-updates.ts:parseUpdateWithAI:success',message:'parseUpdateWithAI success',data:{scores:scores.map(s=>({pointId:s.pointId,score:s.score})),loveScore:scores.find(s=>s.pointId==='Love and Awareness')?.score},timestamp:Date.now(),hypothesisId:'H3,H4'})}).catch(()=>{});
+    // #endregion
+
     return {
       headline: parsed.headline || rawInput.slice(0, 60) || "Untitled",
       narrative: parsed.narrative || rawInput,
       scores,
     };
   } catch (e) {
+    // #region agent log
+    fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'life-updates.ts:parseUpdateWithAI:catch',message:'parseUpdateWithAI error',data:{error:String(e)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
     console.error("AI parse error:", e);
     return {
       headline: rawInput.slice(0, 60) || "Untitled",
@@ -134,6 +144,16 @@ Every pointId must exactly match one of: ${TRACKING_POINTS_STR}`;
 export async function submitLifeUpdate(rawInput: string) {
   if (!rawInput?.trim()) return { ok: false, error: "Empty input" };
 
+  const apiKey =
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return {
+      ok: false,
+      error:
+        "Gemini API key not configured. Add GOOGLE_GENERATIVE_AI_API_KEY or GEMINI_API_KEY to .env.local",
+    };
+  }
+
   const { headline, narrative, scores } = await parseUpdateWithAI(
     rawInput.trim()
   );
@@ -146,6 +166,10 @@ export async function submitLifeUpdate(rawInput: string) {
     scores,
     rawInput: rawInput.trim(),
   });
+
+  // #region agent log
+  fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'life-updates.ts:submitLifeUpdate:saved',message:'createLifeUpdate done',data:{headline,scores:scores.map(s=>({pointId:s.pointId,score:s.score}))},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
 
   return { ok: true };
 }
