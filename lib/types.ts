@@ -1,7 +1,7 @@
 import type { Timestamp } from "@google-cloud/firestore";
 
 export const TRACKING_POINTS = [
-  "Gratitude and Awareness",
+  "Love and Awareness",
   "Mindfulness",
   "Intelligence",
   "Cool",
@@ -11,7 +11,7 @@ export const TRACKING_POINTS = [
 
 /** Default hero stats when no entries exist */
 export const DEFAULT_HERO_STATS: Record<TrackingPointId, number> = {
-  "Gratitude and Awareness": 17,
+  "Love and Awareness": 17,
   Mindfulness: 55,
   Intelligence: 36,
   Cool: 67,
@@ -21,7 +21,7 @@ export const DEFAULT_HERO_STATS: Record<TrackingPointId, number> = {
 
 /**
  * Z-depth by value in today's world (higher = front/closer).
- * Technical & Intelligence lead; Gratitude/Mindfulness are foundational but less "market" valued.
+ * Technical & Intelligence lead; Love/Mindfulness are foundational but less "market" valued.
  */
 export const POINT_Z_DEPTH: Record<TrackingPointId, number> = {
   "Technical Ability": 0.28, // Tech economy, AI, remote work
@@ -29,12 +29,12 @@ export const POINT_Z_DEPTH: Record<TrackingPointId, number> = {
   "Physical Presence": 0.12, // Health, energy, executive presence
   Cool: 0.02, // Personal brand, influence
   Mindfulness: -0.12, // Wellness, focus
-  "Gratitude and Awareness": -0.22, // Emotional intelligence, foundational
+  "Love and Awareness": -0.22, // Emotional intelligence, foundational
 };
 
 /** Color per tracking point for graph variation */
 export const POINT_COLORS: Record<TrackingPointId, string> = {
-  "Gratitude and Awareness": "#f472b6", // pink
+  "Love and Awareness": "#f472b6", // pink
   Mindfulness: "#22d3ee", // cyan
   Intelligence: "#a78bfa", // violet
   Cool: "#60a5fa", // blue

@@ -4,7 +4,7 @@ A dark, cyberpunk-inspired life tracking app with a 3D interactive spider graph.
 
 ## Tracking Points
 
-- Gratitude and Awareness
+- Love and Awareness
 - Mindfulness
 - Intelligence
 - Cool

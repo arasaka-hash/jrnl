@@ -11,7 +11,7 @@ import { StatusUpdate } from "./StatusUpdate";
 import { NewsHeadlines } from "./NewsHeadlines";
 
 const TRACKING_POINTS: TrackingPointId[] = [
-  "Gratitude and Awareness",
+  "Love and Awareness",
   "Mindfulness",
   "Intelligence",
   "Cool",
@@ -127,17 +127,17 @@ function SpiderEdges({
       />
       {/* Spider polygon - connects points at their score-based positions */}
       <Line points={outerPoints} color="#22d3ee" lineWidth={0.8} />
-      {/* Radial spokes to center */}
+      {/* Radial spokes to center - per-point color */}
       {TRACKING_POINTS.map((_, i) => (
         <SpiderEdge
           key={`spoke-${i}`}
           start={positions[i]}
           end={[0, 0, 0]}
           index={i}
-          color="#22d3ee"
+          color={POINT_COLORS[TRACKING_POINTS[i]]}
         />
       ))}
-      {/* Outer ring segments - dashed, uniform hexagon */}
+      {/* Outer ring segments - per-point color */}
       {TRACKING_POINTS.map((_, i) => {
         const next = (i + 1) % TRACKING_POINTS.length;
         return (
@@ -146,7 +146,7 @@ function SpiderEdges({
             start={positions[i]}
             end={positions[next]}
             index={i + 10}
-            color="#22d3ee"
+            color={POINT_COLORS[TRACKING_POINTS[i]]}
           />
         );
       })}
@@ -325,10 +325,12 @@ function SpiderNode({
   const color = POINT_COLORS[pointId];
   const size = 0.014 + (heroStat / 100) * 0.017;
   const ringSize = size * 1.8;
+  const glowScale = isHovered ? 3.5 : 2.5 + (heroStat / 100) * 1;
+  const glowOpacity = isHovered ? 0.25 : 0.08 + (heroStat / 100) * 0.08;
 
   const label =
-    pointId === "Gratitude and Awareness"
-      ? "GRATITUDE"
+    pointId === "Love and Awareness"
+      ? "LOVE"
       : pointId === "Physical Presence"
         ? "PHYSICAL"
         : pointId === "Technical Ability"
@@ -337,6 +339,16 @@ function SpiderNode({
 
   return (
     <group position={pos}>
+      {/* Glow halo - stronger when hovered or high score */}
+      <mesh scale={glowScale}>
+        <sphereGeometry args={[1, 16, 16]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={glowOpacity}
+          side={THREE.BackSide}
+        />
+      </mesh>
       {/* Outer targeting ring */}
       <mesh
         ref={ringRef}

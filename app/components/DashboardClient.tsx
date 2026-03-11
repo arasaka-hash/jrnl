@@ -22,10 +22,18 @@ function computeStatsMap(
 ): Map<TrackingPointId, PointStats> {
   const map = new Map<TrackingPointId, PointStats>();
 
+  const legacyPointIds: Record<string, string> = {
+    "Love and Awareness": "Gratitude and Awareness",
+  };
+
   for (const pointId of TRACKING_POINTS) {
     const pointEntries = entries
       .map((e) => {
-        const score = e.scores.find((s) => s.pointId === pointId);
+        const score = e.scores.find(
+          (s) =>
+            s.pointId === pointId ||
+            s.pointId === legacyPointIds[pointId]
+        );
         return { ...e, score: score?.score ?? 50 };
       })
       .filter((e) => e.score !== undefined)

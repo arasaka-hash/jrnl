@@ -25,7 +25,7 @@ const QUERIES: { category: NewsHeadline["category"]; q: string }[] = [
 
 /** Category → tracking points that get positive Z when that category has more headlines */
 const CATEGORY_TO_POINTS: Record<NewsHeadline["category"], TrackingPointId[]> = {
-  science: ["Gratitude and Awareness", "Mindfulness", "Physical Presence"],
+  science: ["Love and Awareness", "Mindfulness", "Physical Presence"],
   technology: ["Technical Ability", "Intelligence"],
   finance: ["Cool", "Intelligence"],
 };

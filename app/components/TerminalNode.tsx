@@ -5,7 +5,7 @@ import type { PointStats, TrackingPointId } from "@/lib/types";
 import { POINT_COLORS } from "@/lib/types";
 
 function getPointLabel(id: TrackingPointId): string {
-  if (id === "Gratitude and Awareness") return "GRATITUDE";
+  if (id === "Love and Awareness") return "LOVE";
   if (id === "Physical Presence") return "PHYSICAL";
   if (id === "Technical Ability") return "TECHNICAL";
   return id.toUpperCase();

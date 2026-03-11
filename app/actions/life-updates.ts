@@ -35,7 +35,7 @@ async function parseUpdateWithAI(rawInput: string): Promise<{
 
 ## Tracking points (score 0–100 each)
 
-- **Gratitude and Awareness**: Appreciation, emotional intelligence, self-awareness, noticing positives, thankfulness
+- **Love and Awareness**: Love, connection, emotional intelligence, self-awareness, compassion, care for self and others
 - **Mindfulness**: Focus, presence, meditation, calm, mental clarity, being in the moment
 - **Intelligence**: Problem-solving, learning, adaptability, reasoning, curiosity, knowledge
 - **Cool**: Personal brand, influence, style, confidence, social presence, charisma
@@ -52,7 +52,7 @@ async function parseUpdateWithAI(rawInput: string): Promise<{
 ## Examples
 
 Input: "Meditated 20 min this morning, felt really clear"
-→ Mindfulness 80–90 (primary), Gratitude and Awareness 60–70 (secondary clarity)
+→ Mindfulness 80–90 (primary), Love and Awareness 60–70 (secondary clarity)
 
 Input: "Shipped the auth feature, fixed 3 bugs"
 → Technical Ability 75–85 (primary)
@@ -71,7 +71,7 @@ Respond with valid JSON only, no markdown:
   "headline": "Short 3-8 word summary",
   "narrative": "2-4 sentence expansion of the update",
   "scores": [
-    {"pointId": "Gratitude and Awareness", "score": 0-100, "rationale": "brief reason or null if 50"},
+    {"pointId": "Love and Awareness", "score": 0-100, "rationale": "brief reason or null if 50"},
     {"pointId": "Mindfulness", "score": 0-100, "rationale": "brief reason or null if 50"},
     {"pointId": "Intelligence", "score": 0-100, "rationale": "brief reason or null if 50"},
     {"pointId": "Cool", "score": 0-100, "rationale": "brief reason or null if 50"},
