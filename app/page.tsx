@@ -7,14 +7,11 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-[#0a0a0f] text-cyan-100 overflow-hidden">
       <header className="relative z-10 px-4 py-3 border-b border-cyan-500/20">
-        <h1
-          className="text-2xl font-bold text-cyan-400 tracking-widest"
-          style={{ fontFamily: "var(--font-heading), sans-serif" }}
-        >
+        <h1 className="text-2xl font-bold text-cyan-400 tracking-widest font-mono">
           JRNL
         </h1>
-        <p className="text-cyan-500/60 text-xs mt-0.5">
-          Life tracking · Westworld-style
+        <p className="text-cyan-500/60 text-xs mt-0.5 font-mono">
+          Arasaka Agent Assessment to Baseline
         </p>
       </header>
       {/* Cyber grid background */}

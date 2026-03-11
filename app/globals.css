@@ -4,12 +4,11 @@
 
 @layer base {
   :root {
-    --font-heading: "Rajdhani", system-ui, sans-serif;
     --font-mono: "JetBrains Mono", monospace;
   }
 
   html {
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: var(--font-mono), monospace;
     font-size: 14px;
     color-scheme: dark;
   }
@@ -24,7 +23,7 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-heading);
+    font-family: var(--font-mono), monospace;
     font-weight: 600;
     letter-spacing: 0.05em;
   }

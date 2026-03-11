@@ -32,15 +32,24 @@ const CATEGORY_TO_POINTS: Record<NewsHeadline["category"], TrackingPointId[]> = 
 
 export async function fetchNewsHeadlines(): Promise<NewsResult> {
   unstable_noStore();
-  const apiKey =
+  const braveKey =
     process.env.BRAVE_SEARCH_API_KEY ?? process.env.BRAVE_API_KEY;
-  if (!apiKey) {
-    return {
-      insights: [],
-      zDeltas: Object.fromEntries(
-        TRACKING_POINTS.map((id) => [id, 0])
-      ) as Record<TrackingPointId, number>,
-    };
+  const geminiKey =
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
+
+  const emptyResult = {
+    insights: [] as string[],
+    zDeltas: Object.fromEntries(
+      TRACKING_POINTS.map((id) => [id, 0])
+    ) as Record<TrackingPointId, number>,
+  };
+
+  if (!braveKey) {
+    if (geminiKey) {
+      const fallback = await generateFallbackInsight();
+      if (fallback) return { ...emptyResult, insights: [fallback] };
+    }
+    return emptyResult;
   }
 
   const headlines: NewsHeadline[] = [];
@@ -59,7 +68,7 @@ export async function fetchNewsHeadlines(): Promise<NewsResult> {
 
       const res = await fetch(url.toString(), {
         headers: {
-          "X-Subscription-Token": apiKey,
+          "X-Subscription-Token": braveKey,
           Accept: "application/json",
         },
         cache: "no-store",
@@ -71,8 +80,10 @@ export async function fetchNewsHeadlines(): Promise<NewsResult> {
       }
 
       const data = (await res.json()) as Record<string, unknown>;
-      const rawResults =
+      const newsObj = data.news as Record<string, unknown> | undefined;
+      const rawResults: Array<{ title?: string; description?: string }> =
         (data.results as Array<{ title?: string; description?: string }>) ??
+        (newsObj?.results as Array<{ title?: string; description?: string }>) ??
         (data.news as Array<{ title?: string; description?: string }>) ??
         (data.news_results as Array<{ title?: string; description?: string }>) ??
         [];
@@ -90,10 +101,25 @@ export async function fetchNewsHeadlines(): Promise<NewsResult> {
     }
 
     const zDeltas = computeZDeltas(categoryCounts);
-    const insights = await synthesizeInsights(headlines);
+    let insights = await synthesizeInsights(headlines);
+    if (insights.length === 0 && geminiKey) {
+      const fallback = await generateFallbackInsight();
+      if (fallback) insights = [fallback];
+    }
     return { insights, zDeltas };
   } catch (e) {
     console.error("News fetch error:", e);
+    if (geminiKey) {
+      const fallback = await generateFallbackInsight();
+      if (fallback) {
+        return {
+          insights: [fallback],
+          zDeltas: Object.fromEntries(
+            TRACKING_POINTS.map((id) => [id, 0])
+          ) as Record<TrackingPointId, number>,
+        };
+      }
+    }
     return {
       insights: [],
       zDeltas: Object.fromEntries(
@@ -134,6 +160,28 @@ Write ONE short insight (1-2 sentences, max 180 chars) that weaves these into a 
     console.error("Gemini synthesis error:", e);
   }
   return headlines.slice(0, 1).map((h) => h.text);
+}
+
+async function generateFallbackInsight(): Promise<string | null> {
+  const apiKey =
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const res = await ai.models.generateContent({
+      model: "gemini-2.0-flash-exp",
+      contents:
+        "Write ONE short evocative sentence (max 120 chars) about today—a theme, mood, or moment. No quotes. Output only the sentence.",
+    });
+    const raw = res as { text?: string; candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+    let text = raw.text?.trim();
+    if (!text && raw.candidates?.[0]?.content?.parts?.[0]?.text) {
+      text = raw.candidates[0].content.parts[0].text.trim();
+    }
+    return text ? text.slice(0, 200) : null;
+  } catch {
+    return null;
+  }
 }
 
 function computeZDeltas(

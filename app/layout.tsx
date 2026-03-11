@@ -1,12 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Rajdhani, JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-
-const rajdhani = Rajdhani({
-  subsets: ["latin"],
-  variable: "--font-heading",
-  weight: ["400", "500", "600", "700"],
-});
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -14,8 +8,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "JRNL | Life Tracker",
-  description: "Westworld-style life tracking with qualitative updates and spider graph",
+  title: "JRNL | Arasaka Agent Assessment to Baseline",
+  description: "Arasaka Agent Assessment to Baseline - life tracking with qualitative updates and neural profile",
 };
 
 export const viewport: Viewport = {
@@ -31,9 +25,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${rajdhani.variable} ${jetbrainsMono.variable}`}
+      className={jetbrainsMono.variable}
     >
-      <body className="min-h-screen bg-[#0a0a0f] text-cyan-100 overflow-x-hidden font-sans antialiased">
+      <body className="min-h-screen bg-[#0a0a0f] text-cyan-100 overflow-x-hidden font-mono antialiased">
         {children}
       </body>
     </html>

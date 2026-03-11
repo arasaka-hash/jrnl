@@ -134,10 +134,10 @@ function SpiderEdges({
           start={positions[i]}
           end={[0, 0, 0]}
           index={i}
-          color={POINT_COLORS[TRACKING_POINTS[i]]}
+          color="#22d3ee"
         />
       ))}
-      {/* Outer ring segments - dashed */}
+      {/* Outer ring segments - dashed, uniform hexagon */}
       {TRACKING_POINTS.map((_, i) => {
         const next = (i + 1) % TRACKING_POINTS.length;
         return (
@@ -146,7 +146,7 @@ function SpiderEdges({
             start={positions[i]}
             end={positions[next]}
             index={i + 10}
-            color={POINT_COLORS[TRACKING_POINTS[i]]}
+            color="#22d3ee"
           />
         );
       })}
@@ -154,10 +154,11 @@ function SpiderEdges({
   );
 }
 
-// Central hub node with terminal-style label - green sphere
+// Central hub node with terminal-style label - green sphere + glow
 function CenterHub() {
   const meshRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
     if (!meshRef.current || !ringRef.current) return;
@@ -165,6 +166,15 @@ function CenterHub() {
     meshRef.current.rotation.y = t;
     ringRef.current.rotation.x = Math.PI / 2;
     ringRef.current.rotation.z = t * 0.15;
+    // Pulsing emissive glow
+    const mat = meshRef.current.material as THREE.MeshStandardMaterial;
+    if (mat?.emissiveIntensity !== undefined) {
+      const pulse = 0.5 + Math.sin(state.clock.elapsedTime * 0.8) * 0.25;
+      mat.emissiveIntensity = pulse;
+    }
+    if (glowRef.current) {
+      glowRef.current.rotation.y = t * 0.5;
+    }
   });
 
   const termW = 0.24;
@@ -176,8 +186,28 @@ function CenterHub() {
 
   return (
     <group position={[0, 0, 0]}>
+      {/* Soft outer glow halo */}
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[0.18, 32, 32]} />
+        <meshBasicMaterial
+          color="#22c55e"
+          transparent
+          opacity={0.12}
+          side={THREE.BackSide}
+        />
+      </mesh>
+      {/* Mid glow layer */}
+      <mesh>
+        <sphereGeometry args={[0.12, 24, 24]} />
+        <meshBasicMaterial
+          color="#22c55e"
+          transparent
+          opacity={0.2}
+          side={THREE.BackSide}
+        />
+      </mesh>
       <mesh ref={meshRef}>
-        <sphereGeometry args={[0.04, 24, 24]} />
+        <sphereGeometry args={[0.08, 24, 24]} />
         <meshStandardMaterial
           color="#22c55e"
           emissive="#22c55e"
@@ -187,7 +217,7 @@ function CenterHub() {
         />
       </mesh>
       <mesh ref={ringRef}>
-        <ringGeometry args={[0.058, 0.065, 32]} />
+        <ringGeometry args={[0.116, 0.13, 32]} />
         <meshBasicMaterial
           color="#22c55e"
           transparent
@@ -196,7 +226,7 @@ function CenterHub() {
         />
       </mesh>
       {/* Terminal window */}
-      <group position={[0, -0.11, 0]}>
+      <group position={[0, -0.18, 0]}>
         <mesh position={[0, 0, -0.002]}>
           <planeGeometry args={[termW, termH]} />
           <meshBasicMaterial
@@ -226,7 +256,7 @@ function CenterHub() {
           anchorX="left"
           anchorY="top"
         >
-          McGray, Drew
+          MCGRAY, DREW
         </Text>
         <Text
           position={[termLeft, termTop - lineHeight, 0.002]}
@@ -235,7 +265,7 @@ function CenterHub() {
           anchorX="left"
           anchorY="top"
         >
-          Asset ID: 10211647-build72
+          ASSET ID: 10211647-BUILD72
         </Text>
         <group position={[termLeft, termTop - lineHeight * 2, 0.002]}>
           <mesh position={[0.008, 0, 0]}>
@@ -249,7 +279,7 @@ function CenterHub() {
             anchorX="left"
             anchorY="middle"
           >
-            Host Online
+            HOST ONLINE
           </Text>
         </group>
       </group>

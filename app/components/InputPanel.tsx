@@ -118,23 +118,12 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
       </div>
       <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,136,0.1) 2px, rgba(0,255,136,0.1) 4px)" }} aria-hidden />
       <div className="relative flex-1 flex flex-col pt-14">
-      <div className="px-4 py-3 border-b border-cyan-500/20">
-        <h2
-          className="text-cyan-400 text-lg font-semibold tracking-wider"
-          style={{ fontFamily: "var(--font-heading), sans-serif" }}
-        >
-          Life Update
-        </h2>
-        <p className="text-cyan-500/60 text-xs mt-1">
-          Type or record a voice entry — parsed by AI across all tracking points
-        </p>
-      </div>
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 p-4">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g. Meditated for 20 min, finished a tough workout, shipped a feature..."
+            placeholder=""
             className="w-full h-full min-h-[120px] bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-100 placeholder-cyan-500/40 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 resize-none"
             disabled={loading}
           />
@@ -146,8 +135,7 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
           <button
             type="submit"
             disabled={loading || voiceLoading || !input.trim()}
-            className="w-full py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-500 disabled:bg-cyan-900/30 disabled:cursor-not-allowed text-black font-bold tracking-widest uppercase border border-cyan-400/50 hover:border-cyan-300 disabled:border-cyan-800/50 transition-all hover:shadow-[0_0_20px_rgba(0,255,136,0.3)]"
-            style={{ fontFamily: "var(--font-heading), sans-serif" }}
+            className="w-full py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-500 disabled:bg-cyan-900/30 disabled:cursor-not-allowed text-black font-bold tracking-widest uppercase border border-cyan-400/50 hover:border-cyan-300 disabled:border-cyan-800/50 transition-all hover:shadow-[0_0_20px_rgba(0,255,136,0.3)] font-mono"
           >
             {loading ? "PARSING..." : "SUBMIT"}
           </button>

@@ -61,4 +61,4 @@ npm run dev
 - Google Cloud Firestore
 - Google Gemini (AI parsing)
 - Tailwind CSS
-- Rajdhani font for headings
+- JetBrains Mono font throughout

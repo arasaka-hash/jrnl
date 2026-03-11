@@ -14,7 +14,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        heading: ["var(--font-heading)", "Rajdhani", "sans-serif"],
+        sans: ["var(--font-mono)", "JetBrains Mono", "monospace"],
         mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },
     },
