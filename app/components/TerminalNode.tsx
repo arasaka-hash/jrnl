@@ -109,25 +109,29 @@ export function TerminalNode({ pointId, stats, onClose }: TerminalNodeProps) {
             {entries.length === 0 ? (
               <div className="text-sm opacity-50" style={{ color }}>No entries yet</div>
             ) : (
-              entries.map((e) => (
-                <div key={e.id} className="border-l-2 pl-2" style={{ borderColor: `${color}50` }}>
-                  <button
-                    onClick={() =>
-                      setExpandedId(expandedId === e.id ? null : e.id)
-                    }
-                    className="text-left w-full text-sm hover:opacity-100 opacity-90"
-                    style={{ color }}
-                  >
-                    <span className="text-xs opacity-70">{e.date}</span> —{" "}
-                    {e.headline}
-                  </button>
-                  {expandedId === e.id && (
-                    <div className="mt-2 text-sm leading-relaxed opacity-90" style={{ color }}>
-                      {e.narrative}
-                    </div>
-                  )}
-                </div>
-              ))
+              entries.map((e) => {
+                const rationale = e.scores?.find((s) => s.pointId === pointId)?.rationale;
+                const displayText = rationale || e.headline;
+                return (
+                  <div key={e.id} className="border-l-2 pl-2" style={{ borderColor: `${color}50` }}>
+                    <button
+                      onClick={() =>
+                        setExpandedId(expandedId === e.id ? null : e.id)
+                      }
+                      className="text-left w-full text-sm hover:opacity-100 opacity-90"
+                      style={{ color }}
+                    >
+                      <span className="text-xs opacity-70">{e.date}</span> —{" "}
+                      {e.headline}
+                    </button>
+                    {expandedId === e.id && (
+                      <div className="mt-2 text-sm leading-relaxed opacity-90" style={{ color }}>
+                        {displayText}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

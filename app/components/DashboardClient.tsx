@@ -29,14 +29,15 @@ function computeStatsMap(
   for (const pointId of TRACKING_POINTS) {
     const pointEntries = entries
       .map((e) => {
-        const score = e.scores.find(
+        const scoreObj = e.scores.find(
           (s) =>
             s.pointId === pointId ||
             s.pointId === legacyPointIds[pointId]
         );
-        return { ...e, score: score?.score ?? 50 };
+        const score = scoreObj?.score ?? 50;
+        return { ...e, score, scoreObj };
       })
-      .filter((e) => e.score !== undefined)
+      .filter((e) => e.score !== undefined && e.score !== 50)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const trendline = pointEntries
@@ -56,7 +57,7 @@ function computeStatsMap(
       pointId,
       heroStat: Math.min(100, Math.max(0, heroStat)),
       trendline,
-      entries: pointEntries.map(({ score, ...rest }) => rest),
+      entries: pointEntries.map(({ score, scoreObj, ...rest }) => rest),
     });
   }
 
@@ -91,6 +92,7 @@ export function DashboardClient({ initialEntries }: DashboardClientProps) {
       <div className="flex-1 min-h-[400px] p-4 lg:p-6 flex flex-col">
         <div className="flex-1 min-h-[400px]">
           <SpiderGraph
+            key={`${entries.length}-${entries[entries.length - 1]?.id ?? "init"}`}
             statsMap={statsMap}
             onPointClick={setSelectedPoint}
           />
