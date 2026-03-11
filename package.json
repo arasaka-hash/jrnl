@@ -1,0 +1,40 @@
+{
+  "name": "jrnl",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "encode-key": "node scripts/encode-key.js"
+  },
+  "dependencies": {
+    "@fontsource/orbitron": "^5.2.8",
+    "@google-cloud/firestore": "^7.1.0",
+    "@google/genai": "^1.44.0",
+    "@react-three/drei": "^9.88.17",
+    "@react-three/fiber": "^8.15.12",
+    "next": "14.2.18",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/stats.js": "^0.17.4",
+    "@types/three": "^0.160.0",
+    "@types/webxr": "^0.5.24",
+    "autoprefixer": "^10.4.24",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.18",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
