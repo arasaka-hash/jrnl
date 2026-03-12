@@ -178,11 +178,12 @@ function CenterHub() {
     }
   });
 
-  const termW = 0.24;
-  const termH = 0.085;
-  const termLeft = -termW / 2 + 0.02;
-  const termTop = termH / 2 - 0.015;
-  const lineHeight = 0.024;
+  const padding = 0.02;
+  const termW = 0.36;
+  const termH = 0.12;
+  const termLeft = -termW / 2 + padding;
+  const termTop = termH / 2 - padding;
+  const lineHeight = (termH - padding * 2) / 3;
   const fontSize = 0.0182; /* 0.013 * 1.4 = +40% */
 
   return (
@@ -268,7 +269,7 @@ function CenterHub() {
         >
           ASSET ID: 10211647-BUILD72
         </Text>
-        <group position={[termLeft, termTop - lineHeight * 2, 0.002]}>
+        <group position={[termLeft, termTop - lineHeight * 2 - lineHeight / 2, 0.002]}>
           <mesh position={[0.008, 0, 0]}>
             <sphereGeometry args={[0.004, 8, 8]} />
             <meshBasicMaterial color="#22c55e" />
