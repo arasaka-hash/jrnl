@@ -9,6 +9,7 @@ import type { PointStats, TrackingPointId } from "@/lib/types";
 import { POINT_COLORS, POINT_Z_DEPTH } from "@/lib/types";
 import { StatusUpdate } from "./StatusUpdate";
 import { NewsHeadlines } from "./NewsHeadlines";
+import { useBranch } from "@/app/context/BranchContext";
 
 const TRACKING_POINTS: TrackingPointId[] = [
   "Love and Awareness",
@@ -182,7 +183,7 @@ function CenterHub() {
   const termLeft = -termW / 2 + 0.02;
   const termTop = termH / 2 - 0.015;
   const lineHeight = 0.024;
-  const fontSize = 0.013;
+  const fontSize = 0.0182; /* 0.013 * 1.4 = +40% */
 
   return (
     <group position={[0, 0, 0]}>
@@ -458,6 +459,9 @@ export interface SpiderGraphProps {
 export function SpiderGraph({ statsMap, onPointClick }: SpiderGraphProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [zDeltas, setZDeltas] = useState<Partial<Record<TrackingPointId, number>>>({});
+  const { branchZDeltas } = useBranch();
+
+  const effectiveZDeltas = branchZDeltas ?? zDeltas;
 
   const handleHeadlinesLoaded = useCallback(
     (_headlines: unknown, deltas: Record<string, number>) => {
@@ -468,17 +472,12 @@ export function SpiderGraph({ statsMap, onPointClick }: SpiderGraphProps) {
 
   return (
     <div className="spider-graph-hud relative w-full h-full min-h-[400px]">
-      {/* HUD frame - corner brackets */}
-      <div className="hud-corner hud-tl" aria-hidden />
-      <div className="hud-corner hud-tr" aria-hidden />
-      <div className="hud-corner hud-bl" aria-hidden />
-      <div className="hud-corner hud-br" aria-hidden />
       {/* HUD label */}
       <div className="absolute top-8 left-10 z-10 pointer-events-none">
-        <span className="text-cyan-500/80 font-mono tracking-tight uppercase text-[1.2rem]">
+        <span className="text-cyan-500/80 font-orbitron tracking-tight uppercase text-[0.72rem]">
           NEURAL PROFILE
         </span>
-        <span className="ml-4 text-cyan-500/50 font-mono animate-pulse text-[1.2rem] tracking-tight">
+        <span className="ml-4 text-cyan-500/50 font-orbitron animate-pulse text-[0.72rem] tracking-tight">
           ● LIVE
         </span>
       </div>
@@ -514,7 +513,7 @@ export function SpiderGraph({ statsMap, onPointClick }: SpiderGraphProps) {
               hoveredIndex={hoveredIndex}
               setHoveredIndex={setHoveredIndex}
               onPointClick={onPointClick}
-              zDeltas={zDeltas}
+              zDeltas={effectiveZDeltas}
             />
           </Suspense>
         </Canvas>

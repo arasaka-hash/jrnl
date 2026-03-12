@@ -1,5 +1,56 @@
 import { Firestore, Timestamp } from "@google-cloud/firestore";
+import fs from "fs";
+import path from "path";
 import type { LifeUpdateDoc } from "./types";
+
+/** Find project root by traversing up until we find package.json */
+function findProjectRoot(): string {
+  const dirsToTry: string[] = [process.cwd()];
+  if (typeof __dirname !== "undefined") dirsToTry.unshift(__dirname);
+  for (const start of dirsToTry) {
+    let dir = path.resolve(start);
+    for (let i = 0; i < 10; i++) {
+      if (fs.existsSync(path.join(dir, "package.json"))) return dir;
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  }
+  return process.cwd();
+}
+
+/** Read env vars directly from .env.local - bypasses dotenv/Next.js loading issues */
+function readEnvFromFile(): Record<string, string> {
+  const root = findProjectRoot();
+  const envPaths = [
+    path.join(root, ".env.local"),
+    path.join(root, ".env"),
+  ];
+  for (const envPath of envPaths) {
+    if (!fs.existsSync(envPath)) continue;
+    try {
+      let content = fs.readFileSync(envPath, "utf-8");
+      if (content.charCodeAt(0) === 0xfeff) content = content.slice(1);
+      const parsed: Record<string, string> = {};
+      for (const line of content.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const eq = trimmed.indexOf("=");
+        if (eq <= 0) continue;
+        const key = trimmed.slice(0, eq).trim();
+        let value = trimmed.slice(eq + 1).trim();
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        parsed[key] = value;
+      }
+      return parsed;
+    } catch {
+      continue;
+    }
+  }
+  return {};
+}
 
 function getFirestoreConfig(): {
   databaseId: string;
@@ -7,26 +58,37 @@ function getFirestoreConfig(): {
   keyFilename?: string;
   credentials?: object;
 } {
+  const fileEnv = readEnvFromFile();
+  const projectId =
+    process.env.GOOGLE_CLOUD_PROJECT ?? fileEnv.GOOGLE_CLOUD_PROJECT;
+  const base64KeyRaw =
+    process.env.GOOGLE_SERVICE_ACCOUNT_KEY ??
+    fileEnv.GOOGLE_SERVICE_ACCOUNT_KEY;
+  const credentialsPathRaw =
+    process.env.GOOGLE_APPLICATION_CREDENTIALS ??
+    fileEnv.GOOGLE_APPLICATION_CREDENTIALS;
+
   const config: {
     databaseId: string;
     projectId?: string;
     keyFilename?: string;
     credentials?: object;
   } = {
-    databaseId: "arasaka",
+    databaseId:
+      process.env.FIRESTORE_DATABASE_ID ??
+      fileEnv.FIRESTORE_DATABASE_ID ??
+      "arasaka",
   };
-
-  const projectId = process.env.GOOGLE_CLOUD_PROJECT;
   if (projectId && projectId !== "your-project-id") {
     config.projectId = projectId;
   }
 
-  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const credentialsPath = credentialsPathRaw;
   if (credentialsPath) {
     config.keyFilename = credentialsPath;
   }
 
-  const base64Key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  const base64Key = base64KeyRaw;
   if (base64Key && !credentialsPath) {
     try {
       const keyJson = JSON.parse(
@@ -44,26 +106,22 @@ function getFirestoreConfig(): {
   return config;
 }
 
-let firestore: Firestore;
-try {
+let _firestore: Firestore | null = null;
+
+function getFirestoreClient(): Firestore {
+  if (_firestore) return _firestore;
   const config = getFirestoreConfig();
-  if (config.credentials) {
-    firestore = new Firestore({
-      databaseId: config.databaseId,
-      projectId: config.projectId,
-      credentials: config.credentials,
-    });
-  } else {
-    firestore = new Firestore(config);
+  if (!config.credentials || !config.projectId) {
+    throw new Error(
+      "Firestore credentials not configured. Add GOOGLE_CLOUD_PROJECT and GOOGLE_SERVICE_ACCOUNT_KEY (base64) to .env.local. See .env.example."
+    );
   }
-} catch (error) {
-  console.error("Failed to initialize Firestore:", error);
-  throw new Error(
-    "Firestore initialization failed. Please ensure:\n" +
-      "1. You have run: gcloud auth application-default login\n" +
-      "2. Your .env.local file has GOOGLE_CLOUD_PROJECT set\n" +
-      "3. For deployment: Set GOOGLE_SERVICE_ACCOUNT_KEY (base64 encoded JSON)"
-  );
+  _firestore = new Firestore({
+    databaseId: config.databaseId,
+    projectId: config.projectId,
+    credentials: config.credentials,
+  });
+  return _firestore;
 }
 
 const COLLECTION = "life_updates";
@@ -72,7 +130,7 @@ export async function listLifeUpdates(): Promise<
   Array<LifeUpdateDoc & { id: string }>
 > {
   try {
-    const snap = await firestore
+    const snap = await getFirestoreClient()
       .collection(COLLECTION)
       .orderBy("createdAt", "desc")
       .limit(200)
@@ -104,10 +162,41 @@ export async function createLifeUpdate(data: Omit<LifeUpdateDoc, "createdAt">) {
       ...data,
       createdAt: Timestamp.now(),
     };
-    const ref = await firestore.collection(COLLECTION).add(docData);
+    const ref = await getFirestoreClient().collection(COLLECTION).add(docData);
     return ref.id;
   } catch (error) {
     console.error("Firestore createLifeUpdate error:", error);
+    throw error;
+  }
+}
+
+export async function deleteLatestLifeUpdate(): Promise<boolean> {
+  try {
+    const snap = await getFirestoreClient()
+      .collection(COLLECTION)
+      .orderBy("createdAt", "desc")
+      .limit(1)
+      .get();
+    if (snap.empty) return false;
+    await snap.docs[0].ref.delete();
+    return true;
+  } catch (error) {
+    console.error("Firestore deleteLatestLifeUpdate error:", error);
+    throw error;
+  }
+}
+
+export async function deleteAllLifeUpdates(): Promise<number> {
+  try {
+    const snap = await getFirestoreClient()
+      .collection(COLLECTION)
+      .get();
+    const batch = getFirestoreClient().batch();
+    snap.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    return snap.size;
+  } catch (error) {
+    console.error("Firestore deleteAllLifeUpdates error:", error);
     throw error;
   }
 }

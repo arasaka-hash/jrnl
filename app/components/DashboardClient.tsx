@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { fetchLifeUpdates } from "@/app/actions/life-updates";
 import { InputPanel } from "@/app/components/InputPanel";
 
@@ -74,6 +74,10 @@ export function DashboardClient({ initialEntries }: DashboardClientProps) {
     null
   );
 
+  useEffect(() => {
+    setEntries(initialEntries);
+  }, [initialEntries]);
+
   const statsMap = computeStatsMap(entries);
 
   const refresh = useCallback(async () => {
@@ -88,13 +92,13 @@ export function DashboardClient({ initialEntries }: DashboardClientProps) {
   }, []);
 
   return (
-    <div className="relative min-h-screen flex flex-col lg:flex-row">
-      {/* Left: Input panel - always visible */}
+    <div className="relative min-h-screen flex flex-col-reverse lg:flex-row">
+      {/* On mobile: below graph. On lg+: left */}
       <div className="w-full lg:w-80 xl:w-96 shrink-0 p-4 lg:p-6">
         <InputPanel onSubmitted={refresh} />
       </div>
 
-      {/* Right: Spider graph - always visible */}
+      {/* On mobile: above input. On lg+: right */}
       <div className="flex-1 min-h-[400px] p-4 lg:p-6 flex flex-col">
         <div className="flex-1 min-h-[400px]">
           <SpiderGraph

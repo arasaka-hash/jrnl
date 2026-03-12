@@ -10,6 +10,7 @@
     "encode-key": "node scripts/encode-key.js"
   },
   "dependencies": {
+    "dotenv": "^16.4.5",
     "@fontsource/orbitron": "^5.2.8",
     "@google-cloud/firestore": "^7.1.0",
     "@google/genai": "^1.44.0",

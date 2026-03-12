@@ -1,10 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Orbitron } from "next/font/google";
+import { DivergenceProvider } from "@/app/context/DivergenceContext";
+import { BranchProvider } from "@/app/context/BranchContext";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+});
+
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  variable: "--font-orbitron",
 });
 
 export const metadata: Metadata = {
@@ -25,10 +32,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={jetbrainsMono.variable}
+      className={`${jetbrainsMono.variable} ${orbitron.variable}`}
     >
       <body className="min-h-screen bg-[#0a0a0f] text-cyan-100 overflow-x-hidden font-mono antialiased">
-        {children}
+        <DivergenceProvider>
+          <BranchProvider>{children}</BranchProvider>
+        </DivergenceProvider>
       </body>
     </html>
   );

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { submitLifeUpdate } from "@/app/actions/life-updates";
+import { parseLifeUpdate, confirmLifeUpdate } from "@/app/actions/life-updates";
 import { submitVoiceEntry } from "@/app/actions/voice-entry";
+import type { ParsedLifeUpdate } from "@/app/actions/life-updates";
+import { ConfirmUploadModal } from "@/app/components/ConfirmUploadModal";
 
 export interface InputPanelProps {
   onSubmitted: () => void;
@@ -14,6 +16,8 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<ParsedLifeUpdate | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -33,8 +37,8 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
       });
       if (!base64) throw new Error("Failed to read audio");
       const res = await submitVoiceEntry(base64, mimeType);
-      if (res.ok) {
-        onSubmitted();
+      if (res.ok && res.parsed) {
+        setConfirmModal(res.parsed);
       } else {
         setError(res.error ?? "Voice submission failed");
       }
@@ -42,6 +46,26 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
       setError(err instanceof Error ? err.message : "Voice submission failed");
     } finally {
       setVoiceLoading(false);
+    }
+  }
+
+  async function handleAuthorizeUpload() {
+    if (!confirmModal) return;
+    setConfirmLoading(true);
+    setError(null);
+    try {
+      const res = await confirmLifeUpdate(confirmModal);
+      if (res.ok) {
+        setConfirmModal(null);
+        setInput("");
+        await onSubmitted();
+      } else {
+        setError(res.error ?? "Failed to save");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setConfirmLoading(false);
     }
   }
 
@@ -88,15 +112,11 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await submitLifeUpdate(input);
-      // #region agent log
-      fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'InputPanel.tsx:handleSubmit',message:'submitLifeUpdate result',data:{ok:res.ok,error:res.error,input},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-      // #endregion
-      if (res.ok) {
-        setInput("");
-        onSubmitted();
+      const res = await parseLifeUpdate(input);
+      if (res.ok && res.parsed) {
+        setConfirmModal(res.parsed);
       } else {
-        setError(res.error ?? "Failed to save");
+        setError(res.error ?? "Failed to parse");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -107,15 +127,11 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
 
   return (
     <div className="input-panel-hud relative h-full flex flex-col overflow-hidden">
-      <div className="input-corner input-tl" aria-hidden />
-      <div className="input-corner input-tr" aria-hidden />
-      <div className="input-corner input-bl" aria-hidden />
-      <div className="input-corner input-br" aria-hidden />
-      <div className="absolute top-7 left-10 z-10 pointer-events-none">
-        <span className="text-cyan-500/80 font-mono tracking-tight uppercase text-[1.2rem]">
+      <div className="absolute top-7 left-4 z-10 pointer-events-none">
+        <span className="text-cyan-500/80 font-orbitron tracking-tight uppercase text-[0.72rem]">
           INPUT
         </span>
-        <span className="ml-4 text-cyan-500/50 font-mono animate-pulse text-[1.2rem] tracking-tight">
+        <span className="ml-4 text-cyan-500/50 font-orbitron animate-pulse text-[0.72rem] tracking-tight">
           ● LIVE
         </span>
       </div>
@@ -135,13 +151,33 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
           <div className="px-4 pb-2 text-red-400 text-sm">{error}</div>
         )}
         <div className="p-4 pt-0 space-y-3">
-          <button
-            type="submit"
-            disabled={loading || voiceLoading || !input.trim()}
-            className="w-full py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-500 disabled:bg-cyan-900/30 disabled:cursor-not-allowed text-black font-bold tracking-widest uppercase border border-cyan-400/50 hover:border-cyan-300 disabled:border-cyan-800/50 transition-all hover:shadow-[0_0_20px_rgba(0,255,136,0.3)] font-mono"
-          >
-            {loading ? "PARSING..." : "SUBMIT"}
-          </button>
+          <div className="relative">
+            <button
+              type="submit"
+              disabled={loading || voiceLoading || !input.trim()}
+              className="w-full py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-500 disabled:bg-cyan-900/30 disabled:cursor-not-allowed text-black font-bold tracking-widest uppercase border border-cyan-400/50 hover:border-cyan-300 disabled:border-cyan-800/50 transition-all hover:shadow-[0_0_20px_rgba(0,255,136,0.3)] font-mono flex items-center justify-center gap-2"
+            >
+              {loading && (
+                <span className="inline-block w-4 h-4 border-2 border-cyan-900/50 border-t-cyan-400 rounded-full animate-spin" aria-hidden />
+              )}
+              {loading ? "PARSING..." : "SUBMIT"}
+            </button>
+            {(loading || voiceLoading) && (
+              <div
+                className="absolute -bottom-1 left-0 right-0 h-0.5 bg-cyan-500/20 rounded-full overflow-hidden"
+                role="progressbar"
+                aria-label="Processing"
+                aria-valuenow={null}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className="h-full w-1/3 bg-cyan-500/80 rounded-full"
+                  style={{ animation: "progress-shimmer 1.5s ease-in-out infinite" }}
+                />
+              </div>
+            )}
+          </div>
           <div className="flex gap-2">
             <button
               type="button"
@@ -172,6 +208,15 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
         </div>
       </form>
       </div>
+
+      {confirmModal && (
+        <ConfirmUploadModal
+          parsed={confirmModal}
+          onConfirm={handleAuthorizeUpload}
+          onCancel={() => setConfirmModal(null)}
+          loading={confirmLoading}
+        />
+      )}
     </div>
   );
 }

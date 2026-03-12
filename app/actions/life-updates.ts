@@ -4,6 +4,8 @@ import { GoogleGenAI } from "@google/genai";
 import {
   createLifeUpdate,
   listLifeUpdates,
+  deleteLatestLifeUpdate,
+  deleteAllLifeUpdates,
 } from "@/lib/firestore";
 import type {
   LifeUpdateEntry,
@@ -21,9 +23,6 @@ async function parseUpdateWithAI(rawInput: string): Promise<{
 }> {
   const apiKey =
     process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
-  // #region agent log
-  fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'life-updates.ts:parseUpdateWithAI:entry',message:'parseUpdateWithAI called',data:{rawInput,apiKeyPresent:!!apiKey},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
   if (!apiKey) {
     return {
       headline: rawInput.slice(0, 60) || "Untitled",
@@ -85,63 +84,79 @@ Respond with valid JSON only, no markdown:
 
 Every pointId must exactly match one of: ${TRACKING_POINTS_STR}`;
 
-  try {
-    const res = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
+  const MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+  let lastError: unknown = null;
 
-    const text = (res as { text?: string }).text?.trim() ?? "{}";
-    const parsed = JSON.parse(text) as {
-      headline: string;
-      narrative: string;
-      scores: Array<{
-        pointId: string;
-        score: number;
-        rationale?: string;
-      }>;
-    };
+  for (const model of MODELS_TO_TRY) {
+    try {
+      const res = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        },
+      });
 
-    const scores: PointScore[] = TRACKING_POINTS.map((id) => {
-      const found = parsed.scores?.find(
-        (s) => s.pointId === id || s.pointId?.replace(/\s+/g, " ") === id
-      );
+      const raw = res as { text?: string; candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+      let text = raw.text?.trim();
+      if (!text && raw.candidates?.[0]?.content?.parts?.[0]?.text) {
+        text = raw.candidates[0].content.parts[0].text.trim();
+      }
+      if (!text) throw new Error("Empty response from model");
+
+      text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) text = jsonMatch[0];
+
+      let parsed: { headline?: string; narrative?: string; scores?: Array<{ pointId: string; score: number; rationale?: string }> };
+      try {
+        parsed = JSON.parse(text) as typeof parsed;
+      } catch (parseErr) {
+        console.error("JSON parse error. Raw text:", text?.slice(0, 500));
+        throw parseErr;
+      }
+      if (!parsed?.scores?.length) throw new Error("Invalid response structure");
+
+      const scores: PointScore[] = TRACKING_POINTS.map((id) => {
+        const found = parsed.scores?.find(
+          (s) => s.pointId === id || s.pointId?.replace(/\s+/g, " ") === id
+        );
+        return {
+          pointId: id as TrackingPointId,
+          score: Math.min(100, Math.max(0, found?.score ?? 50)),
+          rationale: found?.rationale,
+        };
+      });
+
       return {
-        pointId: id as TrackingPointId,
-        score: Math.min(100, Math.max(0, found?.score ?? 50)),
-        rationale: found?.rationale,
+        headline: parsed.headline || rawInput.slice(0, 60) || "Untitled",
+        narrative: parsed.narrative || rawInput,
+        scores,
       };
-    });
-
-    // #region agent log
-    fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'life-updates.ts:parseUpdateWithAI:success',message:'parseUpdateWithAI success',data:{scores:scores.map(s=>({pointId:s.pointId,score:s.score})),loveScore:scores.find(s=>s.pointId==='Love and Awareness')?.score},timestamp:Date.now(),hypothesisId:'H3,H4'})}).catch(()=>{});
-    // #endregion
-
-    return {
-      headline: parsed.headline || rawInput.slice(0, 60) || "Untitled",
-      narrative: parsed.narrative || rawInput,
-      scores,
-    };
-  } catch (e) {
-    // #region agent log
-    fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'life-updates.ts:parseUpdateWithAI:catch',message:'parseUpdateWithAI error',data:{error:String(e)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-    // #endregion
-    console.error("AI parse error:", e);
-    return {
-      headline: rawInput.slice(0, 60) || "Untitled",
-      narrative: rawInput,
-      scores: TRACKING_POINTS.map((id) => ({
-        pointId: id as TrackingPointId,
-        score: 50,
-      })),
-    };
+    } catch (e) {
+      lastError = e;
+      console.error(`AI parse error (model ${model}):`, e);
+    }
   }
+
+  console.error("All models failed. Last error:", lastError);
+  throw new Error(
+    lastError instanceof Error
+      ? lastError.message
+      : "AI parsing failed. Please try again."
+  );
 }
 
-export async function submitLifeUpdate(rawInput: string) {
+export type ParsedLifeUpdate = {
+  headline: string;
+  narrative: string;
+  scores: PointScore[];
+  rawInput: string;
+};
+
+export async function parseLifeUpdate(
+  rawInput: string
+): Promise<{ ok: boolean; error?: string; parsed?: ParsedLifeUpdate }> {
   if (!rawInput?.trim()) return { ok: false, error: "Empty input" };
 
   const apiKey =
@@ -154,28 +169,98 @@ export async function submitLifeUpdate(rawInput: string) {
     };
   }
 
-  const { headline, narrative, scores } = await parseUpdateWithAI(
-    rawInput.trim()
-  );
+  try {
+    const { headline, narrative, scores } = await parseUpdateWithAI(
+      rawInput.trim()
+    );
+    return {
+      ok: true,
+      parsed: {
+        headline,
+        narrative,
+        scores,
+        rawInput: rawInput.trim(),
+      },
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: msg };
+  }
+}
+
+export async function confirmLifeUpdate(
+  parsed: ParsedLifeUpdate
+): Promise<{ ok: boolean; error?: string }> {
   const date = new Date().toISOString().slice(0, 10);
-
-  await createLifeUpdate({
-    headline,
-    narrative,
-    date,
-    scores,
-    rawInput: rawInput.trim(),
-  });
-
-  // #region agent log
-  fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'life-updates.ts:submitLifeUpdate:saved',message:'createLifeUpdate done',data:{headline,scores:scores.map(s=>({pointId:s.pointId,score:s.score}))},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-  // #endregion
-
+  try {
+    await createLifeUpdate({
+      headline: parsed.headline,
+      narrative: parsed.narrative,
+      date,
+      scores: parsed.scores,
+      rawInput: parsed.rawInput,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Could not load the default credentials")) {
+      return {
+        ok: false,
+        error:
+          "Firestore credentials not configured. Add GOOGLE_CLOUD_PROJECT and GOOGLE_SERVICE_ACCOUNT_KEY (base64) to .env.local. See .env.example.",
+      };
+    }
+    throw err;
+  }
   return { ok: true };
+}
+
+export async function rollbackLatest(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const deleted = await deleteLatestLifeUpdate();
+    return { ok: deleted };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: msg };
+  }
+}
+
+export async function rebuildAll(): Promise<{ ok: boolean; count?: number; error?: string }> {
+  try {
+    const count = await deleteAllLifeUpdates();
+    return { ok: true, count };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: msg };
+  }
+}
+
+/** Create a life update with random scores (1-100) for all points. Returns ok and optional error. */
+export async function branchHostConstruct(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const scores: PointScore[] = TRACKING_POINTS.map((pointId) => ({
+      pointId,
+      score: Math.floor(Math.random() * 100) + 1,
+    }));
+    const date = new Date().toISOString().slice(0, 10);
+    await createLifeUpdate({
+      headline: "Branched: random baseline",
+      narrative: "BRANCH HOST CONSTRUCT — random values assigned to all points.",
+      date,
+      scores,
+      rawInput: "[BRANCH]",
+    });
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: msg };
+  }
 }
 
 export async function fetchLifeUpdates(): Promise<LifeUpdateEntry[]> {
   const docs = await listLifeUpdates();
+  // #region agent log
+  fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'life-updates.ts:fetchLifeUpdates',message:'fetchLifeUpdates result',data:{count:docs.length,lastHeadline:docs[docs.length-1]?.headline},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+  // #endregion
   return docs.map((d) => ({
     id: d.id,
     headline: d.headline,

@@ -1,7 +1,7 @@
 "use server";
 
 import { GoogleGenAI, createUserContent, createPartFromBase64, createPartFromText } from "@google/genai";
-import { submitLifeUpdate } from "./life-updates";
+import { parseLifeUpdate, type ParsedLifeUpdate } from "./life-updates";
 
 const SUPPORTED_MIMES = [
   "audio/wav",
@@ -17,7 +17,7 @@ const SUPPORTED_MIMES = [
 export async function submitVoiceEntry(
   audioBase64: string,
   mimeType: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; parsed?: ParsedLifeUpdate }> {
   const normalizedMime = mimeType.toLowerCase().replace(/;.*$/, "").trim();
   if (!SUPPORTED_MIMES.includes(normalizedMime) && !normalizedMime.startsWith("audio/")) {
     return { ok: false, error: "Unsupported audio format. Use WAV, MP3, WebM, OGG, or FLAC." };
@@ -33,7 +33,7 @@ export async function submitVoiceEntry(
     const ai = new GoogleGenAI({ apiKey });
 
     const res = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.5-flash",
       contents: createUserContent([
         createPartFromBase64(audioBase64, normalizedMime),
         createPartFromText(
@@ -55,7 +55,7 @@ export async function submitVoiceEntry(
       return { ok: false, error: "Could not transcribe audio" };
     }
 
-    return submitLifeUpdate(transcription);
+    return parseLifeUpdate(transcription);
   } catch (e) {
     console.error("Voice transcription error:", e);
     return {

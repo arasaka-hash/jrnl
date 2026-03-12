@@ -1,13 +1,13 @@
 import { fetchLifeUpdates } from "@/app/actions/life-updates";
 import { DashboardClient } from "@/app/components/DashboardClient";
-import { LockButton } from "@/app/components/LockButton";
+import { AdminMenu } from "@/app/components/AdminMenu";
 
 export default async function Home() {
   const entries = await fetchLifeUpdates();
 
   return (
     <main className="min-h-screen bg-[#0a0a0f] text-cyan-100 overflow-hidden">
-      <header className="relative z-10 px-4 py-3 border-b border-cyan-500/20 flex items-center justify-between">
+      <header className="relative z-[100] px-4 py-3 border-b border-cyan-500/20 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-cyan-400 tracking-widest font-mono">
             JRNL
@@ -16,7 +16,7 @@ export default async function Home() {
             Arasaka Agent Assessment to Baseline
           </p>
         </div>
-        <LockButton />
+        <AdminMenu />
       </header>
       {/* Cyber grid background */}
       <div
