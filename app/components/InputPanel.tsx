@@ -167,7 +167,6 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
                 className="absolute -bottom-1 left-0 right-0 h-0.5 bg-cyan-500/20 rounded-full overflow-hidden"
                 role="progressbar"
                 aria-label="Processing"
-                aria-valuenow={null}
                 aria-valuemin={0}
                 aria-valuemax={100}
               >
