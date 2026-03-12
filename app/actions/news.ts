@@ -129,7 +129,7 @@ export async function fetchNewsHeadlines(): Promise<NewsResult> {
     });
 
     // Map selected texts back to full headline objects (match by title/text)
-    function findHeadline(selectedText: string): NewsHeadline | undefined {
+    const findHeadline = (selectedText: string): NewsHeadline | undefined => {
       const s = selectedText.toLowerCase();
       const exact = headlines.find((h) => h.text.toLowerCase() === s);
       if (exact) return exact;
@@ -140,7 +140,7 @@ export async function fetchNewsHeadlines(): Promise<NewsResult> {
       return headlines.find((h) =>
         h.text.toLowerCase().includes(s.slice(0, 40)) || s.includes(h.text.toLowerCase().slice(0, 40))
       );
-    }
+    };
 
     const richHeadlines: NewsHeadlineItem[] = dedupedTexts
       .slice(0, TARGET_HEADLINE_COUNT)
