@@ -184,7 +184,7 @@ function CenterHub() {
   const termLeft = -termW / 2 + padding;
   const termTop = termH / 2 - padding;
   const lineHeight = (termH - padding * 2) / 3;
-  const fontSize = 0.0182; /* 0.013 * 1.4 = +40% */
+  const fontSize = 0.0182;
 
   return (
     <group position={[0, 0, 0]}>
