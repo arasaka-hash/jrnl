@@ -1,9 +1,10 @@
 import { fetchLifeUpdates } from "@/app/actions/life-updates";
 import { DashboardClient } from "@/app/components/DashboardClient";
 import { AdminMenu } from "@/app/components/AdminMenu";
+import type { LifeUpdateEntry } from "@/lib/types";
 
 export default async function Home() {
-  let entries;
+  let entries: LifeUpdateEntry[];
   try {
     entries = await fetchLifeUpdates();
   } catch (e) {
