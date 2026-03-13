@@ -257,16 +257,18 @@ export async function branchHostConstruct(): Promise<{ ok: boolean; error?: stri
 }
 
 export async function fetchLifeUpdates(): Promise<LifeUpdateEntry[]> {
-  const docs = await listLifeUpdates();
-  // #region agent log
-  fetch('http://127.0.0.1:7384/ingest/a6f14ac3-126a-4fd8-96cb-f88dd4ec32e1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f064e3'},body:JSON.stringify({sessionId:'f064e3',location:'life-updates.ts:fetchLifeUpdates',message:'fetchLifeUpdates result',data:{count:docs.length,lastHeadline:docs[docs.length-1]?.headline},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
-  // #endregion
-  return docs.map((d) => ({
-    id: d.id,
-    headline: d.headline,
-    narrative: d.narrative,
-    date: d.date,
-    scores: d.scores,
-    rawInput: d.rawInput,
-  }));
+  try {
+    const docs = await listLifeUpdates();
+    return docs.map((d) => ({
+      id: d.id,
+      headline: d.headline,
+      narrative: d.narrative,
+      date: d.date,
+      scores: d.scores,
+      rawInput: d.rawInput,
+    }));
+  } catch (e) {
+    console.error("fetchLifeUpdates error:", e);
+    return [];
+  }
 }

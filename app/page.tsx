@@ -3,7 +3,13 @@ import { DashboardClient } from "@/app/components/DashboardClient";
 import { AdminMenu } from "@/app/components/AdminMenu";
 
 export default async function Home() {
-  const entries = await fetchLifeUpdates();
+  let entries;
+  try {
+    entries = await fetchLifeUpdates();
+  } catch (e) {
+    console.error("Home page fetchLifeUpdates error:", e);
+    entries = [];
+  }
 
   return (
     <main className="min-h-screen bg-[#0a0a0f] text-cyan-100 overflow-hidden">

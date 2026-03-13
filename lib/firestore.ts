@@ -77,7 +77,7 @@ function getFirestoreConfig(): {
     databaseId:
       process.env.FIRESTORE_DATABASE_ID ??
       fileEnv.FIRESTORE_DATABASE_ID ??
-      "arasaka",
+      "(default)",
   };
   if (projectId && projectId !== "your-project-id") {
     config.projectId = projectId;

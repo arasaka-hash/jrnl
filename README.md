@@ -38,7 +38,7 @@ GOOGLE_GENERATIVE_AI_API_KEY=your-gemini-api-key
 
 ### 2. Firestore
 
-- Use the same `arasaka` database as creative-approval
+- Default database: `(default)`. For shared setup, set `FIRESTORE_DATABASE_ID=arasaka`
 - Collection: `life_updates`
 
 ### 3. Vercel deployment
