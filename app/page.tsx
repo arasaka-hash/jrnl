@@ -3,6 +3,8 @@ import { DashboardClient } from "@/app/components/DashboardClient";
 import { AdminMenu } from "@/app/components/AdminMenu";
 import type { LifeUpdateEntry } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   let entries: LifeUpdateEntry[];
   try {
@@ -44,7 +46,7 @@ export default async function Home() {
         />
       </div>
 
-      <DashboardClient initialEntries={entries} />
+      <DashboardClient initialEntries={entries ?? []} />
     </main>
   );
 }
