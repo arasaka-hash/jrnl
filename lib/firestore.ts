@@ -68,17 +68,17 @@ function getFirestoreConfig(): {
     process.env.GOOGLE_APPLICATION_CREDENTIALS ??
     fileEnv.GOOGLE_APPLICATION_CREDENTIALS;
 
+  const dbId = process.env.FIRESTORE_DATABASE_ID ?? fileEnv.FIRESTORE_DATABASE_ID;
   const config: {
-    databaseId: string;
+    databaseId?: string;
     projectId?: string;
     keyFilename?: string;
     credentials?: object;
-  } = {
-    databaseId:
-      process.env.FIRESTORE_DATABASE_ID ??
-      fileEnv.FIRESTORE_DATABASE_ID ??
-      "(default)",
-  };
+  } = {};
+  if (dbId?.trim()) {
+    config.databaseId = dbId.trim();
+  }
+  // When databaseId is omitted, Firestore uses the default database
   if (projectId && projectId !== "your-project-id") {
     config.projectId = projectId;
   }
@@ -116,11 +116,14 @@ function getFirestoreClient(): Firestore {
       "Firestore credentials not configured. Add GOOGLE_CLOUD_PROJECT and GOOGLE_SERVICE_ACCOUNT_KEY (base64) to .env.local. See .env.example."
     );
   }
-  _firestore = new Firestore({
-    databaseId: config.databaseId,
+  const firestoreOpts: { databaseId?: string; projectId?: string; credentials?: object } = {
     projectId: config.projectId,
     credentials: config.credentials,
-  });
+  };
+  if (config.databaseId) {
+    firestoreOpts.databaseId = config.databaseId;
+  }
+  _firestore = new Firestore(firestoreOpts);
   return _firestore;
 }
 
@@ -156,6 +159,11 @@ export async function listLifeUpdates(): Promise<
   }
 }
 
+function isNotFoundError(err: unknown): boolean {
+  const e = err as { code?: number; details?: string };
+  return e?.code === 5 || (typeof e?.details === "string" && e.details.includes("NOT_FOUND"));
+}
+
 export async function createLifeUpdate(data: Omit<LifeUpdateDoc, "createdAt">) {
   try {
     const docData: LifeUpdateDoc = {
@@ -166,6 +174,11 @@ export async function createLifeUpdate(data: Omit<LifeUpdateDoc, "createdAt">) {
     return ref.id;
   } catch (error) {
     console.error("Firestore createLifeUpdate error:", error);
+    if (isNotFoundError(error)) {
+      throw new Error(
+        "Firestore database not found. Create it in Firebase Console (Firestore → Create database) or remove FIRESTORE_DATABASE_ID to use the default database."
+      );
+    }
     throw error;
   }
 }

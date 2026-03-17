@@ -42,7 +42,7 @@ const CATEGORY_TO_POINTS: Record<NewsHeadline["category"], TrackingPointId[]> = 
 };
 
 const TARGET_HEADLINE_COUNT = 10;
-const MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+const MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
 
 export async function fetchNewsHeadlines(): Promise<NewsResult> {
   unstable_noStore();

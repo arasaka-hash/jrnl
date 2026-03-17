@@ -84,25 +84,46 @@ Respond with valid JSON only, no markdown:
 
 Every pointId must exactly match one of: ${TRACKING_POINTS_STR}`;
 
-  const MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+  const MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
   let lastError: unknown = null;
+
+  const PARSE_TIMEOUT_MS = 25_000;
 
   for (const model of MODELS_TO_TRY) {
     try {
-      const res = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-        },
+      const controller = new AbortController();
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          controller.abort();
+          reject(new Error("Parse timed out. Try again or use Save anyway."));
+        }, PARSE_TIMEOUT_MS);
       });
 
-      const raw = res as { text?: string; candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-      let text = raw.text?.trim();
-      if (!text && raw.candidates?.[0]?.content?.parts?.[0]?.text) {
-        text = raw.candidates[0].content.parts[0].text.trim();
+      const res = await Promise.race([
+        ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            abortSignal: controller.signal,
+          },
+        }),
+        timeoutPromise,
+      ]);
+
+      // SDK returns GenerateContentResponse with .text getter; also support raw structure
+      const raw = res as {
+        text?: string;
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      let text =
+        (typeof raw.text === "string" ? raw.text : null)?.trim() ??
+        raw.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ??
+        "";
+      if (!text) {
+        console.error(`AI empty response (model ${model}). Raw keys:`, Object.keys(raw));
+        throw new Error("Empty response from model");
       }
-      if (!text) throw new Error("Empty response from model");
 
       text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -135,7 +156,13 @@ Every pointId must exactly match one of: ${TRACKING_POINTS_STR}`;
       };
     } catch (e) {
       lastError = e;
-      console.error(`AI parse error (model ${model}):`, e);
+      const isTimeout =
+        e instanceof Error &&
+        (e.message.includes("timed out") || e.name === "AbortError");
+      console.error(
+        `AI parse error (model ${model}):`,
+        isTimeout ? "Request timed out" : e
+      );
     }
   }
 
@@ -154,9 +181,28 @@ export type ParsedLifeUpdate = {
   rawInput: string;
 };
 
+/** Build a fallback parse when AI fails: headline from first 60 chars, narrative = input, all scores 50 */
+function buildFallbackParse(rawInput: string): ParsedLifeUpdate {
+  const trimmed = rawInput.trim();
+  return {
+    headline: trimmed.slice(0, 60) || "Untitled",
+    narrative: trimmed,
+    scores: TRACKING_POINTS.map((pointId) => ({
+      pointId,
+      score: 50,
+    })),
+    rawInput: trimmed,
+  };
+}
+
 export async function parseLifeUpdate(
   rawInput: string
-): Promise<{ ok: boolean; error?: string; parsed?: ParsedLifeUpdate }> {
+): Promise<{
+  ok: boolean;
+  error?: string;
+  parsed?: ParsedLifeUpdate;
+  fallbackParsed?: ParsedLifeUpdate;
+}> {
   if (!rawInput?.trim()) return { ok: false, error: "Empty input" };
 
   const apiKey =
@@ -184,7 +230,11 @@ export async function parseLifeUpdate(
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: msg };
+    return {
+      ok: false,
+      error: msg,
+      fallbackParsed: buildFallbackParse(rawInput),
+    };
   }
 }
 

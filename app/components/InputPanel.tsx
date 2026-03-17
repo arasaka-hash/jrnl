@@ -17,6 +17,7 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
   const [recording, setRecording] = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [confirmModal, setConfirmModal] = useState<ParsedLifeUpdate | null>(null);
+  const [fallbackParsed, setFallbackParsed] = useState<ParsedLifeUpdate | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -111,12 +112,14 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
     if (!input.trim()) return;
     setLoading(true);
     setError(null);
+    setFallbackParsed(null);
     try {
       const res = await parseLifeUpdate(input);
       if (res.ok && res.parsed) {
         setConfirmModal(res.parsed);
       } else {
         setError(res.error ?? "Failed to parse");
+        if (res.fallbackParsed) setFallbackParsed(res.fallbackParsed);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -148,7 +151,22 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
           />
         </div>
         {error && (
-          <div className="px-4 pb-2 text-red-400 text-sm">{error}</div>
+          <div className="px-4 pb-2 space-y-2">
+            <div className="text-red-400 text-sm">{error}</div>
+            {fallbackParsed && (
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmModal(fallbackParsed);
+                  setError(null);
+                  setFallbackParsed(null);
+                }}
+                className="text-cyan-400 hover:text-cyan-300 text-sm font-mono underline"
+              >
+                Save anyway (default scores)
+              </button>
+            )}
+          </div>
         )}
         <div className="p-4 pt-0 space-y-3">
           <div className="relative">

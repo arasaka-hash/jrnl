@@ -38,14 +38,20 @@ GOOGLE_GENERATIVE_AI_API_KEY=your-gemini-api-key
 
 ### 2. Firestore
 
-- Default database: `(default)`. For shared setup, set `FIRESTORE_DATABASE_ID=arasaka`
+- Uses the **default** Firestore database. Omit `FIRESTORE_DATABASE_ID` in `.env.local` and Vercel.
 - Collection: `life_updates`
+
+**If you get `5 NOT_FOUND` or "database not found":**
+1. Open [Firebase Console](https://console.firebase.google.com) → your project → Firestore
+2. Create the default database if none exists (Firestore → Create database)
+3. Remove `FIRESTORE_DATABASE_ID` from `.env.local` and Vercel so the app uses the default database
 
 ### 3. Vercel deployment
 
 1. Set `GOOGLE_CLOUD_PROJECT` and `GOOGLE_SERVICE_ACCOUNT_KEY` (base64-encoded service account JSON)
 2. Set `GOOGLE_GENERATIVE_AI_API_KEY` or `GEMINI_API_KEY`
-3. Run `node scripts/encode-key.js` to encode your service account key for `GOOGLE_SERVICE_ACCOUNT_KEY`
+3. Do **not** set `FIRESTORE_DATABASE_ID` (app uses the default database)
+4. Run `node scripts/encode-key.js` to encode your service account key for `GOOGLE_SERVICE_ACCOUNT_KEY`
 
 ## Run locally
 
