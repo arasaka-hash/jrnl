@@ -53,7 +53,7 @@ function readEnvFromFile(): Record<string, string> {
 }
 
 function getFirestoreConfig(): {
-  databaseId: string;
+  databaseId?: string;
   projectId?: string;
   keyFilename?: string;
   credentials?: object;
