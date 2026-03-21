@@ -3,8 +3,11 @@
 import { useState, useRef } from "react";
 import { parseLifeUpdate, confirmLifeUpdate } from "@/app/actions/life-updates";
 import { submitVoiceEntry } from "@/app/actions/voice-entry";
+import { submitPhotoEntry } from "@/app/actions/photo-entry";
 import type { ParsedLifeUpdate } from "@/app/actions/life-updates";
 import { ConfirmUploadModal } from "@/app/components/ConfirmUploadModal";
+
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 export interface InputPanelProps {
   onSubmitted: () => void;
@@ -16,6 +19,7 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
   const [confirmModal, setConfirmModal] = useState<ParsedLifeUpdate | null>(null);
   const [fallbackParsed, setFallbackParsed] = useState<ParsedLifeUpdate | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
@@ -107,6 +111,44 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
     e.target.value = "";
   }
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file?.type.startsWith("image/")) {
+      setError("Please select an image (JPEG, PNG, WebP, or GIF).");
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setError("Image must be under 4MB.");
+      return;
+    }
+    setPhotoLoading(true);
+    setError(null);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          const b64 = result.split(",")[1];
+          resolve(b64 ?? "");
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      if (!base64) throw new Error("Failed to read image");
+      const res = await submitPhotoEntry(base64, file.type);
+      if (res.ok && res.parsed) {
+        setConfirmModal(res.parsed);
+      } else {
+        setError(res.error ?? "Photo analysis failed");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Photo upload failed");
+    } finally {
+      setPhotoLoading(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim()) return;
@@ -147,7 +189,7 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
             onChange={(e) => setInput(e.target.value)}
             placeholder=""
             className="w-full h-full min-h-[120px] bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-100 placeholder-cyan-500/40 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 resize-none"
-            disabled={loading}
+            disabled={loading || photoLoading}
           />
         </div>
         {error && (
@@ -172,7 +214,7 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
           <div className="relative">
             <button
               type="submit"
-              disabled={loading || voiceLoading || !input.trim()}
+              disabled={loading || voiceLoading || photoLoading || !input.trim()}
               className="w-full py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-500 disabled:bg-cyan-900/30 disabled:cursor-not-allowed text-black font-bold tracking-widest uppercase border border-cyan-400/50 hover:border-cyan-300 disabled:border-cyan-800/50 transition-all hover:shadow-[0_0_20px_rgba(0,255,136,0.3)] font-mono flex items-center justify-center gap-2"
             >
               {loading && (
@@ -180,7 +222,7 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
               )}
               {loading ? "PARSING..." : "SUBMIT"}
             </button>
-            {(loading || voiceLoading) && (
+            {(loading || voiceLoading || photoLoading) && (
               <div
                 className="absolute -bottom-1 left-0 right-0 h-0.5 bg-cyan-500/20 rounded-full overflow-hidden"
                 role="progressbar"
@@ -199,7 +241,7 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
             <button
               type="button"
               onClick={recording ? handleRecordStop : handleRecordStart}
-              disabled={loading || voiceLoading}
+              disabled={loading || voiceLoading || photoLoading}
               className={`flex-1 py-2 px-3 font-mono text-xs tracking-wider uppercase border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                 recording
                   ? "bg-red-600/80 border-red-500/60 text-white animate-pulse"
@@ -213,14 +255,27 @@ export function InputPanel({ onSubmitted }: InputPanelProps) {
                 type="file"
                 accept="audio/*"
                 onChange={handleFileUpload}
-                disabled={loading || voiceLoading}
+                disabled={loading || voiceLoading || photoLoading}
                 className="hidden"
               />
               UPLOAD
             </label>
           </div>
+          <label className="block w-full py-2 px-3 font-mono text-xs tracking-wider uppercase border border-cyan-500/40 bg-black/50 text-cyan-400 hover:border-cyan-500/60 cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handlePhotoUpload}
+              disabled={loading || voiceLoading || photoLoading}
+              className="hidden"
+            />
+            PHOTO
+          </label>
           {voiceLoading && (
             <p className="text-cyan-500/70 text-xs font-mono">Transcribing...</p>
+          )}
+          {photoLoading && (
+            <p className="text-cyan-500/70 text-xs font-mono">Analyzing image...</p>
           )}
         </div>
       </form>

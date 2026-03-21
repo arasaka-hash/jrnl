@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 
@@ -12,15 +13,16 @@ export type DivergenceMode = "aggregate" | "singular";
 
 const STORAGE_KEY = "jrnl-divergence-mode";
 
-function loadStored(): DivergenceMode {
-  if (typeof window === "undefined") return "aggregate";
+const DEFAULT_MODE: DivergenceMode = "singular";
+
+function readStoredMode(): DivergenceMode {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v === "aggregate" || v === "singular") return v;
   } catch {
     /* ignore */
   }
-  return "aggregate";
+  return DEFAULT_MODE;
 }
 
 const DivergenceContext = createContext<{
@@ -29,7 +31,11 @@ const DivergenceContext = createContext<{
 } | null>(null);
 
 export function DivergenceProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<DivergenceMode>(() => loadStored());
+  const [mode, setModeState] = useState<DivergenceMode>(DEFAULT_MODE);
+
+  useEffect(() => {
+    setModeState(readStoredMode());
+  }, []);
 
   const setMode = useCallback((m: DivergenceMode) => {
     setModeState(m);

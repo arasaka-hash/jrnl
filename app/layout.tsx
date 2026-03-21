@@ -15,8 +15,8 @@ const orbitron = Orbitron({
 });
 
 export const metadata: Metadata = {
-  title: "JRNL | Arasaka Agent Assessment to Baseline",
-  description: "Arasaka Agent Assessment to Baseline - life tracking with qualitative updates and neural profile",
+  title: "Arasaka FORGE",
+  description: "Life tracking with qualitative updates and neural profile",
 };
 
 export const viewport: Viewport = {
