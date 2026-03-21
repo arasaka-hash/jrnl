@@ -125,7 +125,7 @@ export function TerminalNode({ pointId, stats, onClose }: TerminalNodeProps) {
                       {e.headline}
                     </button>
                     {expandedId === e.id && (
-                      <div className="mt-2 text-sm leading-relaxed opacity-90" style={{ color }}>
+                      <div className="journal-accordion-details mt-2 text-sm leading-relaxed">
                         {displayText}
                       </div>
                     )}

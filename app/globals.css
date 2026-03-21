@@ -367,9 +367,15 @@
   border-top: 1px solid rgba(100, 100, 100, 0.1);
   margin-top: -1px;
 }
+/* Cyber yellow body text — journal modal details + news accordion summary */
+.journal-accordion-details,
+.news-headlines-summary {
+  color: rgba(240, 255, 100, 0.95);
+  text-shadow: 0 0 10px rgba(220, 255, 80, 0.35);
+}
+
 .news-headlines-summary {
   margin: 0.35rem 0 0.5rem 0;
-  color: rgba(160, 160, 160, 0.7);
   font-family: var(--font-mono), monospace;
   font-size: 0.6rem;
   line-height: 1.4;
@@ -378,14 +384,16 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  color: rgba(100, 200, 255, 0.85);
+  color: rgba(255, 248, 120, 0.95);
   font-family: var(--font-mono), monospace;
   font-size: 0.6rem;
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, text-shadow 0.15s ease;
+  text-shadow: 0 0 8px rgba(255, 240, 100, 0.3);
 }
 .news-headlines-source-link:hover {
-  color: rgba(140, 220, 255, 1);
+  color: #ffffcc;
+  text-shadow: 0 0 12px rgba(255, 255, 180, 0.45);
 }
 .news-headlines-prefix {
   color: rgba(120, 120, 120, 0.8);
